@@ -1,0 +1,10 @@
+Group Maison
+Group Zones
+Switch chambre "Chambre" <bedroom> (Zones)
+Switch lit "Lit" <bedroom> (Zones)
+Switch porte "Porte" <door> (Zones)
+// contrôleur pour la simulation
+Switch simulation "Reset" <switch> (Zones)
+Switch detecteur_mvt_plafond "detecteur_mvt_plafond" <switch> (Zones)
+Switch ampoule_plafonnier "ampoule_plafonnier" <switch> (Zones)
+Switch day_light "day_light" <slider> (Zones)

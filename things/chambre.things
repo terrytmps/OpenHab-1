@@ -1,0 +1,5 @@
+Thing chambre "chambre"
+Thing simulation "simulation"
+Thing detecteur_mvt_plafond "detecteur_mvt_plafond"
+Thing ampoule_plafonnier "ampoule_plafonnier"
+Thing day_light "day_light"
