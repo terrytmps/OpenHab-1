@@ -1,6 +1,3 @@
-// import org.eclipse.smarthome.model.script.ScriptServiceUtil
-// import org.eclipse.smarthome.core.library.items.StringItem
-// import java.util.ArrayList
 val TAG_FileName = "chambre.rules"
 
 rule "Démarrage de openHAB"
@@ -16,7 +13,6 @@ end
 
 rule "reset simulation"
 when
-// Item simulation changed from ON to OFF
     Item simulation received update
 then
     logInfo(TAG_FileName, "Rule : reset simulation")
@@ -25,15 +21,41 @@ then
     ampoule_plafonnier.postUpdate(OFF)
 end
 
-
-
-// Lier environnement simulé (zones) et les capteurs
-rule "Mouvement simulé"
+rule "Allumer la lumière si conditions remplies"
 when
-    Member of Zones changed
+    Item detecteur_mvt_plafond changed to ON or
+    Item day_light changed
 then
-    logInfo(TAG_FileName, "Rule : Mouvement simulé")
-    logInfo(TAG_FileName, "triggeringItem.state"+triggeringItem.state)
-    ampoule_plafonnier.state = detecteur_mvt_plafond.state
-    chambre.state =  detecteur_mvt_plafond.state
+    if (chambre.state == ON && lit.state == OFF && day_light.state < 30) {
+        logInfo(TAG_FileName, "Rule : Allumer lumière - Conditions remplies")
+        ampoule_plafonnier.sendCommand(ON)
+    }
+end
+
+rule "Éteindre la lumière s'il n'y a personne"
+when
+    Item detecteur_mvt_plafond changed to OFF
+then
+    logInfo(TAG_FileName, "Rule : Éteindre lumière - Personne dans la pièce")
+    ampoule_plafonnier.sendCommand(OFF)
+end
+
+rule "Éteindre la lumière après 15 minutes d'inactivité dans le lit"
+when
+    Item lit changed to ON
+then
+    createTimer(now.plusMinutes(15), [|
+        if (lit.state == ON && detecteur_mvt_plafond.state == OFF) {
+            logInfo(TAG_FileName, "Rule : Éteindre lumière après 15 minutes d'inactivité")
+            ampoule_plafonnier.sendCommand(OFF)
+        }
+    ])
+end
+
+rule "Rallumer la lumière quand la personne se lève"
+when
+    Item lit changed to OFF
+then
+    logInfo(TAG_FileName, "Rule : Rallumer lumière - Personne s'est levée")
+    ampoule_plafonnier.sendCommand(ON)
 end
