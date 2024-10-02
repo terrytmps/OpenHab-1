@@ -1,0 +1,39 @@
+// import org.eclipse.smarthome.model.script.ScriptServiceUtil
+// import org.eclipse.smarthome.core.library.items.StringItem
+// import java.util.ArrayList
+val TAG_FileName = "chambre.rules"
+
+rule "Démarrage de openHAB"
+when
+    System started
+then
+    logInfo(TAG_FileName, "Rule : Démarrage de openHAB")
+    // il n'y a personne dans la pièce et l'éclairage est fermé
+    chambre.postUpdate(OFF)
+    detecteur_mvt_plafond.postUpdate(OFF)
+    ampoule_plafonnier.postUpdate(OFF)
+end
+
+rule "reset simulation"
+when
+// Item simulation changed from ON to OFF
+    Item simulation received update
+then
+    logInfo(TAG_FileName, "Rule : reset simulation")
+    detecteur_mvt_plafond.postUpdate(OFF)
+    chambre.postUpdate(OFF)
+    ampoule_plafonnier.postUpdate(OFF)
+end
+
+
+
+// Lier environnement simulé (zones) et les capteurs
+rule "Mouvement simulé"
+when
+    Member of Zones changed
+then
+    logInfo(TAG_FileName, "Rule : Mouvement simulé")
+    logInfo(TAG_FileName, "triggeringItem.state"+triggeringItem.state)
+    ampoule_plafonnier.state = detecteur_mvt_plafond.state
+    chambre.state =  detecteur_mvt_plafond.state
+end

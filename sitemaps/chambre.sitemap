@@ -1,0 +1,25 @@
+sitemap chambre label="Ma chambre intelligente" {
+
+	Frame label="Simulation" {
+		Switch item=simulation mappings=[ON="tous à ON", OFF="Tous à OFF"]
+	}
+	Frame label="Zones simulées" {
+		Switch item=chambre mappings=[ON="occupée", OFF="libre"]
+		Switch item=lit mappings=[ON="occupé", OFF="libre"]
+		Switch item=porte mappings=[ON="fermée", OFF="ouverte"]
+	}
+	Frame label="Capteurs de présence " {
+		Switch item=detecteur_mvt_plafond  mappings=[ON="detecte", OFF="rien"]
+		
+	}
+	Frame label="Éclairage" {
+		Switch item=ampoule_plafonnier mappings=[ON="allume", OFF="eteint"]
+		Slider item=day_light
+	}
+	
+	Frame label="Pingable" {
+		Switch item=Peripherique_Reseau_Pingable_Connecte icon="switch"
+		Text item=Peripherique_Reseau_Pingable_Latence label="Pingable
+		latence " icon="temperature"
+	}
+}
