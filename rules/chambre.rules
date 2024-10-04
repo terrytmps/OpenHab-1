@@ -1,61 +1,102 @@
 val TAG_FileName = "chambre.rules"
 
+// définition de fonctions
+val isBedEmpty = [ | return lit.state == 0 ]
+
+// itération sur les membres d'un groupe
+// Zone.members.forEach[ motionSensor |
+//    motionSensor.postUpdate(triggeringItem.state) ]
+
+val all_items = [ state |
+    chambre.postUpdate(state)
+    lit.postUpdate(state)
+    porte.postUpdate(state)
+    detecteur_mvt_plafond.postUpdate(state)
+    ampoule_plafonnier.postUpdate(state)
+    lampe_chevet.postUpdate(state)
+    day_light.postUpdate(state)
+    test_button.postUpdate(state)
+    error_button.postUpdate(state)
+]
+
+val all_lights = [ state |
+    ampoule_plafonnier.postUpdate(state)
+    lampe_chevet.postUpdate(state)
+] // applique au groupe de lumières
+
+// si plusieurs règles sont déclenchées en même temps : l'ordre exécution non garanti (en parallèle)
+
 rule "Démarrage de openHAB"
 when
     System started
 then
     logInfo(TAG_FileName, "Rule : Démarrage de openHAB")
-    // il n'y a personne dans la pièce et l'éclairage est fermé
-    chambre.postUpdate(OFF)
-    detecteur_mvt_plafond.postUpdate(OFF)
-    ampoule_plafonnier.postUpdate(OFF)
+    all_items.apply("OFF")
 end
 
 rule "reset simulation"
 when
+    // différence entre "received command" (utilisateur qui change) et "received update" (changement d'état en général)
+    // Item simulation received command
     Item simulation received update
 then
-    logInfo(TAG_FileName, "Rule : reset simulation")
-    detecteur_mvt_plafond.postUpdate(OFF)
-    chambre.postUpdate(OFF)
-    ampoule_plafonnier.postUpdate(OFF)
+    // récupérer l'heure actuelle
+    logInfo(TAG_FileName, "Règle déclenchée à : " + now.toString)
+    all_items.apply(simulation.state)
 end
 
-rule "Allumer la lumière si conditions remplies"
+rule "gestion lumiere chambre"
 when
-    Item detecteur_mvt_plafond changed to ON or
-    Item day_light changed
+    Item chambre received update or
+    Item day_light received update
 then
-    if (chambre.state == ON && lit.state == OFF && day_light.state < 30) {
-        logInfo(TAG_FileName, "Rule : Allumer lumière - Conditions remplies")
-        ampoule_plafonnier.sendCommand(ON)
+    logInfo(TAG_FileName, "Rule : gestion lumiere chambre")
+
+    if (day_light.state > 50 && chambre.state == ON) {
+        ampoule_plafonnier.postUpdate(OFF)
+    } else {
+        ampoule_plafonnier.postUpdate(chambre.state)
     }
 end
 
-rule "Éteindre la lumière s'il n'y a personne"
+rule "gestion de toutes les lumières"
 when
-    Item detecteur_mvt_plafond changed to OFF
+    Item test_button received command
 then
-    logInfo(TAG_FileName, "Rule : Éteindre lumière - Personne dans la pièce")
-    ampoule_plafonnier.sendCommand(OFF)
+    logInfo(TAG_FileName, "Rule : gestion de toutes les lumières")
+    Thread::sleep(1000) // Simuler une attente d'1 seconde pour une opération
+    all_lights.apply(test_button.state) // applique au groupe de lumières
+
+
 end
 
-rule "Éteindre la lumière après 15 minutes d'inactivité dans le lit"
+rule "detection inconsistence systeme"
 when
-    Item lit changed to ON
+    Item chambre received command or
+    Item ampoule_plafonnier received command or
+    Item day_light received command or
+    Time cron "0 0 0 * * ?" // tous les jours à minuit
 then
-    createTimer(now.plusMinutes(15), [|
-        if (lit.state == ON && detecteur_mvt_plafond.state == OFF) {
-            logInfo(TAG_FileName, "Rule : Éteindre lumière après 15 minutes d'inactivité")
-            ampoule_plafonnier.sendCommand(OFF)
-        }
+    logInfo(TAG_FileName, "Rule : detection inconsistence systeme")
+    // comparer 2 à 2
+    if (chambre.state == ON && ampoule_plafonnier.state == ON && day_light.state > 50) {
+        error_button.postUpdate(ON)
+    }else{
+        error_button.postUpdate(OFF)
+    }
+end
+
+rule "Différer la fermeture de l'éclairage"
+when
+    Item chambre received update OFF
+then
+    if (delayOffTimer !== null) {
+        delayOffTimer.cancel() // Annuler le minuteur si existant
+    }
+    
+    // Démarrer un minuteur de 5 minutes avant d'éteindre l'éclairage
+    delayOffTimer = createTimer(now.plusSecond(5), [ |
+        ampoule_plafonnier.sendCommand(OFF)
+        logInfo("system.rules", "L'éclairage a été éteint après 5 minutes.")
     ])
-end
-
-rule "Rallumer la lumière quand la personne se lève"
-when
-    Item lit changed to OFF
-then
-    logInfo(TAG_FileName, "Rule : Rallumer lumière - Personne s'est levée")
-    ampoule_plafonnier.sendCommand(ON)
 end

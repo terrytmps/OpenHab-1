@@ -1,10 +1,21 @@
 Group Maison
 Group Zones
-Switch chambre "Chambre" <bedroom> (Zones)
-Switch lit "Lit" <bedroom> (Zones)
-Switch porte "Porte" <door> (Zones)
-// contrôleur pour la simulation
+
+// type, name, label, icon, group
+
+// Trois détecteurs de présence
+Switch chambre "Chambre" <switch> (Zones)
+Switch lit "Lit" <switch> (Zones)
+Switch porte "Porte" <switch> (Zones)
+
+// Deux lampes
+Switch ampoule_plafonnier "Ampoule plafonnier" <switch> (Zones)
+Switch lampe_chevet "Lampe de chevet" <switch> (Zones)
+
+Switch detecteur_mvt_plafond "Détecteur de mouvement" <switch> (Zones)
+Dimmer day_light "Lumière du jour" <slider> (Zones)
 Switch simulation "Reset" <switch> (Zones)
-Switch detecteur_mvt_plafond "detecteur_mvt_plafond" <switch> (Zones)
-Switch ampoule_plafonnier "ampoule_plafonnier" <switch> (Zones)
-Switch day_light "day_light" <slider> (Zones)
+
+// Bouton de test et detection erreur
+Switch test_button "Test" <switch> (Zones)
+Switch error_button "Error" <switch> (Zones)

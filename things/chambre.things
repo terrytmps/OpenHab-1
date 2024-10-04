@@ -1,5 +1,15 @@
-Thing chambre "chambre"
-Thing simulation "simulation"
-Thing detecteur_mvt_plafond "detecteur_mvt_plafond"
-Thing ampoule_plafonnier "ampoule_plafonnier"
-Thing day_light "day_light"
+Thing chambre "Chambre" {
+    Type switch : chambre "Chambre" 
+    Type switch : lit "Lit" 
+    Type switch : porte "Porte" 
+    Type switch : detecteur_mvt_plafond "Détecteur de mouvement plafond" 
+    Type switch : ampoule_plafonnier "Ampoule plafonnier"
+    Type switch : lampe_chevet "Lampe de chevet"
+    Type dimmer : day_light "Lumière du jour"
+}
+
+Thing simulation "Simulation" {
+    Type switch : simulation "Simulation"
+    Type switch : test_button "Test" 
+    Type switch : error_button "Error"
+}
