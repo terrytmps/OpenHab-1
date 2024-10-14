@@ -7,6 +7,13 @@ val isBedEmpty = [ | return lit.state == 0 ]
 // Zone.members.forEach[ motionSensor |
 //    motionSensor.postUpdate(triggeringItem.state) ]
 
+val LUMINOSITE_MIN = 40
+val LUMINOSITE_MAX = 50
+val LUMINOSITE_OPTIMALE = 35
+val NIVEAU_SONORE_MIN = 30
+val NIVEAU_SONORE_MAX = 90
+val NIVEAU_SONORE__OPTIMAL = 75
+
 val all_items = [ state |
     chambre.postUpdate(state)
     lit.postUpdate(state)
@@ -52,7 +59,7 @@ when
 then
     logInfo(TAG_FileName, "Rule : gestion lumiere chambre")
 
-    if (day_light.state > 50 && chambre.state == ON) {
+    if (day_light.state > LUMINOSITE_MIN && chambre.state == ON) {
         ampoule_plafonnier.postUpdate(OFF)
     } else {
         ampoule_plafonnier.postUpdate(chambre.state)
@@ -62,12 +69,11 @@ end
 rule "gestion de toutes les lumières"
 when
     Item test_button received command
+    // Member of Luminance received update (Luminance est un group d'items)
 then
     logInfo(TAG_FileName, "Rule : gestion de toutes les lumières")
     Thread::sleep(1000) // Simuler une attente d'1 seconde pour une opération
     all_lights.apply(test_button.state) // applique au groupe de lumières
-
-
 end
 
 rule "detection inconsistence systeme"

@@ -1,0 +1,62 @@
+/**
+    Vêtement intelligent
+**/
+
+Bridge elwire:bridge:ewbridge [ ipAddress="192.168.3.123" ] {
+	// gateway el-wire
+	Thing 0210 strip1 [stripId="1"]  //référer par elwire:0210:ewbridge:strip1   
+	Thing 0220 strip2 [stripId="2"]  // référer par elwire:0220:ewbridge:strip2            
+}
+//vibration patch
+Thing   vibrationPatch:device:vibration  "vibration patch" @ "smart clothes" 
+
+
+// voir description à https://www.openhab.org/addons/bindings/zwave/doc/things.html
+Bridge  zwave:serial_zstick:8c582004    "ZWave Controller"  [ port="/dev/ttyACM0", controller_softreset="false", controller_master="true", heal_enable="true", security_networkkey="???" ] {
+	// ampèremètres placés sur les interrupteurs du plafonnier
+    Thing   luxMeter       node2   "luxmeter " @ "smart clothes"   [ node_id=2 ] {    
+      Channels:
+        // sensors
+        Type number : luminance [ updateInterval=10 ]
+        Type number : battery-level [ updateInterval=10 ]
+        }
+    Thing   noiseMeter     node3   "noise meter" @ "smart clothes" [ node_id=3 ]  
+      Channels:
+        // sensors
+        Type number : noise [ updateInterval=10 ]
+        Type number : battery-level [ updateInterval=10 ]
+    Thing   wristband      node4   "wristBand" @ "smart clothes"   [ node_id=4 ] {
+      Channels:
+        // sensors
+        Type number : luminance [ updateInterval=10 ]
+        Type number : noise [ updateInterval=10 ]
+        Type string : accelerometer [ updateInterval=10 ]
+        Type number : speed [ updateInterval=10 ]
+        Type number : galvanicSkinResponse [ updateInterval=10 ]
+	    // effectors
+        Type switch : vibration 
+        Type switch : enable 
+        }
+}
+
+/**
+    Pièce
+**/
+
+// https://www.smarthomeblog.net/mqtt-openhab/
+// https://gist.github.com/davidgraeff/6c00d2ad5e4bc553f5f209118307d8fd
+// https://community.openhab.org/t/solved-oh-2-4-mqtt-binding-generic-thing-statetopic-working-commandtopic-not-working/63619
+
+Bridge mqtt:systemBroker:embedded-mqtt-broker [ host="127.0.0.1", secure=false ]
+{
+    Thing mqtt:topic:room1MQTT {
+    Channels:
+        Type string : room1 "all MQTT room events" @ "room 1"[ stateTopic="room/1/#" ]
+        Type string : smartclothes "all MQTT smart clothes events" @ "room 1"[ stateTopic="smartclothes/#" ]
+        Type switch : tag "RFID MQTT event" @ "room 1" [ stateTopic="room/+/tag"]
+        Type string : noise "noise MQTT event" @ "room 1" [ stateTopic="smartclothes/+/sensor/noise" ]
+        Type string : luminance "luminosity MQTT event" @ "room 1" [ stateTopic="smartclothes/+/sensor/luminance" ]
+    }
+}
+
+Thing rfidReader:device:reader1  "rfidReader " @ "room 1"  
