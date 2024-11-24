@@ -13,3 +13,46 @@ Thing simulation "Simulation" {
     Type switch : test_button "Test" 
     Type switch : error_button "Error"
 }
+
+//////// Vêtement intelligent
+Bridge elwire:bridge:ewbridge [ ipAddress="192.168.3.123" ] {
+	// gateway el-wire
+	Thing 0210 strip1 [stripId="1"]  // référer par elwire:0210:ewbridge:strip1   
+	Thing 0220 strip2 [stripId="2"]  // référer par elwire:0220:ewbridge:strip2            
+}
+
+// label "vibration patch" located in a location called "smart clothes"
+Thing vibrationPatch:device:vibration  "vibration patch" @ "smart clothes" 
+
+Bridge  zwave:serial_zstick:8c582004    "ZWave Controller"  [ port="/dev/ttyACM0"... ] {
+	// ampèremètres placés sur les interrupteurs du plafonnier
+    Thing   luxMeter       node2   "luxmeter " @ "smart clothes"   [ node_id=2 ] {    
+      Channels:
+        // sensors
+        Type number : luminance [ updateInterval=10 ]
+        Type number : battery-level [ updateInterval=10 ]
+        }
+    Thing   wristband      node4   "wristBand" @ "smart clothes"   [ node_id=4 ] {
+      Channels:
+        // sensors
+        Type number : luminance [ updateInterval=10 ]
+        Type number : noise [ updateInterval=10 ]
+        Type number : galvanicSkinResponse [ updateInterval=10 ]
+	    // effectors
+        Type switch : vibration 
+        Type switch : enable
+        }
+}
+
+///////// Pièce
+Bridge mqtt:systemBroker:embedded-mqtt-broker [ host="127.0.0.1", secure=false ]
+{
+    Thing mqtt:topic:room1MQTT {
+    Channels:
+        Type string : room1 "all MQTT room events" @ "room 1"[ stateTopic="room/1/#" ]
+        Type string : smartclothes "all MQTT smart clothes events" @ "room 1"[ stateTopic="smartclothes/#" ]
+        Type switch : tag "RFID MQTT event" @ "room 1" [ stateTopic="room/+/tag"]
+        Type string : noise "noise MQTT event" @ "room 1" [ stateTopic="smartclothes/+/sensor/noise" ]
+        Type string : luminance "luminosity MQTT event" @ "room 1" [ stateTopic="smartclothes/+/sensor/luminance" ]
+    }
+}

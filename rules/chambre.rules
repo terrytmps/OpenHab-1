@@ -106,3 +106,175 @@ then
         logInfo("system.rules", "L'éclairage a été éteint après 5 minutes.")
     ])
 end
+
+
+
+// SMART CLOTHES
+
+val smartClothesID = "12345678"
+
+var Contact currentRoom
+var MQTTBroker currentMQTTBroker
+
+// managing context
+var boolean goodConditions = true	// of course, only one of good/bad conditions is required
+var boolean badConditions = false
+var badConditionsStartTime = 0		// in milliseconds
+val URGE_TO_CHANGE_ROOM_TIME_TRIGGER = 300000 // 5 minutes
+
+// managing people in the room
+var people = new HashSet<String>()
+var luminanceMeasures = new HashMap<String, Integer>()
+var noiseMeasures = new HashMap<String, Integer>()
+
+// j'entre dans une pièce
+val iEnter = [ ContactItem room, String smartClothesID, MQTTBroker broker  | 
+    broker.sendCommand(CONNECT);
+    broker.sendCommand(SUBSCRIBE, "room/1/#");
+    broker.sendCommand(SUBSCRIBE, "smartclothes/#");
+    broker.sendCommand(SUBSCRIBE, "room/1/tag/+");
+    broker.sendCommand(SUBSCRIBE, "smartclothes/+/sensor/luminance");
+    broker.sendCommand(SUBSCRIBE, "smartclothes/+/sensor/noise");
+    // informer que l'on vient d'entrer dans la pièce
+    broker.sendCommand(PUBLISH, smartClothesID+"/status", "Online")
+    vibrationPatch.sendCommand(OFF)
+]
+
+// je sors de une pièce
+val iQuit = [ ContactItem room, String smartClothesID, MQTTBroker broker  | 
+    broker.sendCommand(UNSUBSCRIBE, "room/1/#");
+    broker.sendCommand(UNSUBSCRIBE, "smartclothes/#");
+    broker.sendCommand(UNSUBSCRIBE, "room/1/tag/+");
+    broker.sendCommand(UNSUBSCRIBE, "smartclothes/+/sensor/luminance");
+    broker.sendCommand(UNSUBSCRIBE, "smartclothes/+/sensor/noise");
+    // informer que l'on vient d'entrer dans la pièce
+    broker.sendCommand(PUBLISH, smartClothesID+"/status", "Offline")
+]
+// le vêtement entre dans une pièce
+val someoneEnterInRoom = [ String smartClothesID  | 
+    people.add(smartClothesID)
+]
+
+val someoneQuitRoom = [ String smartClothesID  | 
+    people.remove(smartClothesID)
+    noiseMeasures.remove(smartClothesID)
+    luminanceMeasures.remove(smartClothesID)
+]
+
+// fonctions utilitaires pour la gestion du contexte
+// autre solutions pour calculer les moyennes, utiliser les HashMap luminanceMeasures et noiseMeasures
+val Integer averageLuminance = [  | Luminance.state
+]
+
+val Integer averagenoise = [  | Noise.state
+]
+
+val boolean checkGoodConditions = [ Integer roomLuminance, Integer roomNoise  | 
+      return (LUMINOSITE_MIN  < roomLuminance || roomLuminance < LUMINOSITE_MAX) 
+                    && (NIVEAU_SONORE_MIN  < roomNoise || roomNoise < NIVEAU_SONORE_MAX)
+]
+
+val reactToNewConditions = [  |     
+    goodConditions = checkGoodConditions(averageLuminance(), averageNoise())
+    badConditions = !goodConditions
+    if (goodConditions) {
+    	badConditionsStartTime = 0
+      	vibrationPatch.sendCommand(OFF)
+    	// rapprocher l'éclairage de la valeur optimale
+    	if (Luminance.state < LUMOINOSITE_OPTIMALE) {
+    		stripIntensity.sendCommand(INCREASE)
+    	} else {
+    		stripIntensity.sendCommand(DECREASE)
+    	}
+    } else { 
+    // Éviter de rester trop longtemps dans des conditions défavorables 
+    vibrationPatch.sendCommand(ON)
+    if (badConditionsStartTime == 0){
+    	badConditionsStartTime = now.getMillis();
+    }
+    if (now.getMillis() - badConditionsStartTime > URGE_TO_CHANGE_ROOM_TIME_TRIGGER) {
+    	vibrationPatch.sendCommand(ON)
+    }
+    }
+]
+
+rule "Démarrage de openHAB"
+when
+    System started
+then
+    logInfo(TAG_FileName, "Rule : Démarrage de openHAB")
+    currentRoom = room1
+    currentMQTTBroker = room1MQTT
+    iEnter(currentRoom, smartClothesID, currentMQTTBroker)
+end
+
+// Diffuser les mesures de ses capteurs aux autres vêtements intelligents 
+rule "lecture d'une mesure de luminosité par le capteur du vêtement"
+when
+	// Item luminance received update
+    Member of Luminance received update 
+then
+    var sensorName = triggeringItem.name
+    var value = triggeringItem.state
+    currentMQTTBroker.sendCommand(PUBLISH, "smartclothes/"+smartClothesID+"/sensor/luminance", value)
+    
+end
+
+rule "lecture d'une mesure de bruit par le capteur du vêtement"
+when
+	// Item noise received update
+    Member of Noise received update
+then
+    var sensorName = triggeringItem.name
+    var value = triggeringItem.state
+    currentMQTTBroker.sendCommand(PUBLISH, "smartclothes/"+smartClothesID+"/sensor/noise", value) 
+end
+
+// Gérer son contexte ambiant 
+
+rule "nouvelle mesure de bruit publiée par le courtier MQTT"
+when	currentMQTTBroker "smartclothes/+/sensor/noise" changed
+then
+    noiseMeasures.put(extractID(triggeringItem.newState.topic), trigerringItem.newState.value)
+	reactToNewConditions()
+end
+
+rule "nouvelle mesure de bruit publiée par le courtier MQTT"
+when	currentMQTTBroker "smartclothes/+/sensor/luminance" changed
+then
+    luminanceMeasures.put(extractID(triggeringItem.newState.topic), trigerringItem.newState.value)
+	reactToNewConditions()
+end
+
+// Tenir compte des arrivées et départs de personnes dans la salle
+rule "arrivée d'une personne"
+when
+	// si on n'utilise pas le mécanisme des dernières volontés de MQTT,
+	// il faut surveiller les éléments pertinents à la main
+	// currentMQTTBroker "room/+/tag" changed  //lecture d'un tag RFID
+	// or currentMQTTBroker "smartclothes/+/sensor/luminance" changed  // member of Luminance changed
+	// or currentMQTTBroker "smartclothes/+/sensor/noise" changed
+	currentMQTTBroker "+/status " changed to "Online" //lecture d'un tag RFID
+
+then
+    String triggeringSmartClothesID = extractID(triggeringItem.newState.topic)  
+    someoneEnterInRoom(triggeringSmartClothesID)
+end
+
+// Tenir compte des arrivées et départs de personnes dans la salle
+rule "départ d'une personne"
+when
+	currentMQTTBroker "+/status " changed to "Offline" //lecture d'un tag RFID
+then
+    String triggeringSmartClothesID = extractID(triggeringItem.newState.topic)  
+    someoneQuitRoom(triggeringSmartClothesID)
+end
+
+rule "Arrêt de openHAB" 
+when
+    System shuts down
+then
+    logInfo(TAG_FileName, " Rule : Arrêt de openHAB")
+    // sauvegarder les états des items et le contexte
+    iQuit(currentRoom, smartClothesID, currentMQTTBroker)
+end

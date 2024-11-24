@@ -1,0 +1,52 @@
+val TAG_FileName = "salle.rules"
+
+rule "Démarrage de openHAB"
+when
+    System started
+then
+    logInfo(TAG_FileName, "Rule : Démarrage de openHAB")
+
+    Exercise.postUpdate(OFF)
+    Stealing.postUpdate(OFF)
+    alarm_motion_node3.postUpdate(alarm_motion_node3.state)
+    alarm_tamper_node3.postUpdate(alarm_tamper_node3.state)
+
+end
+
+rule "Simulation individu Exercise"
+when
+    Item Exercise changed
+then
+    logInfo(TAG_FileName, "Rule : Simulation individu")
+
+    if(Exercise.state == ON) {
+        alarm_motion_node3.postUpdate(ON)
+    } else {
+        alarm_motion_node3.postUpdate(OFF)
+    }
+end
+
+rule "Simulation individu Stealing"
+when
+    Item Stealing changed
+then
+    logInfo(TAG_FileName, "Rule : Simulation individu")
+
+    if(Stealing.state == ON) {
+        alarm_tamper_node3.postUpdate(ON)
+        //sendNotification("roussel.aymeric@gmail.com", "Le capteur est déplacé !")
+    } else {
+        alarm_tamper_node3.postUpdate(OFF)
+    }
+end
+
+rule "Gestion capteur"
+when 
+    Item alarm_motion_node3 changed
+then
+    logInfo(TAG_FileName, "Rule : Gestion capteur")
+
+    alarm_motion_node3.postUpdate(alarm_motion_node3.state)
+    alarm_tamper_node3.postUpdate(alarm_tamper_node3.state)    
+    
+end

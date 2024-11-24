@@ -1,0 +1,25 @@
+sitemap salle label="Salle" {
+    Frame label="Individu"{
+        Switch item=Exercise label="Exercise" icon="motion"
+        Switch item=Stealing label="Steal" icon="error"
+    }
+
+    Frame label="Capteur Node 3"{
+        Switch item=alarm_motion_node3 label="Movement" icon="switch" mappings=[ON="Alarm", OFF="OK"]
+        Switch item=alarm_tamper_node3 label="Tamper" icon="alarm" mappings=[ON="Alarm", OFF="OK"]
+    }
+
+    Frame label="Zone 1"{
+        Slider item=LED_Switch label="Luminosité [%.1f]" minValue=0 maxValue=100
+    }
+
+    Frame label="Chez Kallu et Terry"{
+        Switch item=apero label="Coureur des bois" icon="party"
+        Switch item=popcorn label="Popcorn de Terry" icon="cinema"
+        Switch item=projecteur label="Projecteur Walmart" icon="projector"
+        Switch item=machine label="Lave-linge en surchauffe" icon="whitegood"
+        Switch item=woman label="La voisine" icon="woman_1"
+        Switch item=btc label="Bitcoin"
+    }
+
+}

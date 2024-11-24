@@ -1,0 +1,19 @@
+Group gMotion
+Group gTemper
+Group gSensor
+Group gNode2
+Group gNode3
+
+Dimmer LED_Switch "LED Z-Wave" <slider>
+Number MotionSensorBattery "Batterie du Détecteur [%d %%]"
+
+Switch Exercise "Exercise" <motion>
+Switch Stealing "Steal" <error>
+
+Switch alarm_motion_node2 "Alarm Motion Node 2" <switch> (gMotion, gSensor, gNode2)
+Switch alarm_tamper_node2 "Alarm Tamper Node 2" <switch> (gTemper, gSensor, gNode2)
+
+Switch alarm_motion_node3 "Alarm Motion Node 3" <switch> (gMotion, gSensor, gNode3)
+Switch alarm_tamper_node3 "Alarm Tamper Node 3" <switch> (gTemper, gSensor, gNode3)
+
+Switch btc "Bitcoin" <if:game-icons:camel-head>
